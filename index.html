@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Share Moment — Kamera & Album Foto</title>
+  <style>
+    :root {
+      --bg: #161412;
+      --card: #221f1c;
+      --text: #f6f1e7;
+      --muted: #b8afa0;
+      --accent: #d4a359;
+      --accent-ink: #191510;
+      --border: rgba(212, 163, 89, 0.28);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .wrap { max-width: 720px; margin: 0 auto; padding: 20px 16px 64px; }
+    .top {
+      display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
+      gap: 10px; border-bottom: 1px solid var(--border); padding-bottom: 14px;
+    }
+    h1 { margin: 0; font-size: 1.35rem; letter-spacing: 0.02em; }
+    .pill {
+      background: rgba(212, 163, 89, 0.14); border: 1px solid var(--border);
+      color: var(--accent); padding: 6px 12px; border-radius: 999px; font-size: 0.82rem; font-weight: 600;
+    }
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 16px; margin-top: 16px;
+    }
+    .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    input, select, button {
+      font: inherit; border-radius: 10px; border: 1px solid var(--border);
+    }
+    input, select {
+      background: #171513; color: var(--text); padding: 10px 12px; flex: 1; min-width: 160px;
+    }
+    button {
+      background: var(--accent); color: var(--accent-ink); font-weight: 700;
+      padding: 10px 16px; cursor: pointer; border: none;
+    }
+    button.secondary {
+      background: transparent; color: var(--text); border: 1px solid var(--border); font-weight: 600;
+    }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    .viewfinder {
+      position: relative; width: 100%; aspect-ratio: 4 / 5; background: #0c0b0a;
+      border-radius: 12px; overflow: hidden; margin-top: 12px; border: 1px solid var(--border);
+    }
+    video { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .shutter-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 10px; margin-top: 14px;
+    }
+    .shutter-btn {
+      width: 66px; height: 66px; border-radius: 999px; padding: 0;
+      display: grid; place-items: center; font-size: 0.85rem;
+    }
+    .status { margin-top: 10px; font-size: 0.88rem; color: var(--accent); min-height: 22px; }
+    .countdown-box { text-align: center; padding: 24px 12px; }
+    .countdown-time { font-size: 1.6rem; font-weight: 800; color: var(--accent); margin-top: 8px; }
+    .gallery {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px; margin-top: 14px;
+    }
+    .photo-card {
+      background: #171513; border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+    }
+    .photo-card img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; display: block; }
+    .photo-meta { padding: 8px 10px; font-size: 0.78rem; color: var(--muted); }
+    .photo-meta strong { display: block; color: var(--text); font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <h1 id="eventTitle">Share Moment</h1>
+      <span id="shotsBadge" class="pill">Sisa jepretan: -</span>
+    </header>
+
+    <section id="cameraSection" class="card">
+      <div class="row">
+        <input id="guestName" type="text" maxlength="50" placeholder="Nama kamu (opsional, misal: Rani)">
+        <select id="filmPreset" aria-label="Preset Filter">
+          <option value="Warm Film">Warm Film</option>
+          <option value="Retro 2000s">Retro 2000s</option>
+          <option value="B&W Classic">B&amp;W Classic</option>
+          <option value="Night Flash">Night Flash</option>
+        </select>
+        <button id="flipBtn" type="button" class="secondary">Balik Kamera</button>
+      </div>
+
+      <div class="viewfinder">
+        <video id="video" autoplay playsinline muted></video>
+      </div>
+
+      <div class="shutter-bar">
+        <button id="startCamBtn" type="button" class="secondary">Aktifkan Kamera</button>
+        <button id="snapBtn" type="button" class="shutter-btn" disabled>Jepret</button>
+        <span id="presetInfo" style="font-size:0.82rem;color:var(--muted);">Warm Film</span>
+      </div>
+
+      <p id="statusMsg" class="status"></p>
+      <canvas id="canvas" style="display:none;"></canvas>
+    </section>
+
+    <section id="revealSection" class="card">
+      <div id="lockedBox" class="countdown-box">
+        <div style="font-size:0.9rem;color:var(--muted);">Album foto bersama akan terbuka dalam:</div>
+        <div id="countdownText" class="countdown-time">--:--:--</div>
+      </div>
+
+      <div id="unlockedBox" style="display:none;">
+        <div class="row" style="justify-content:space-between;">
+          <h2 style="margin:0;font-size:1.1rem;">Album Foto Bersama</h2>
+          <button id="refreshGalleryBtn" type="button" class="secondary">Muat Ulang</button>
+        </div>
+        <div id="galleryGrid" class="gallery"></div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbxLP7SVW9eDLK0-RL9L2eFwSFNCWqoWXlRx87mW3RZl5fh3NrTMADyluscpxw1xXyvP/exec";
+    const SESSION_KEY = "share_moment_session_v1";
+    const NAME_KEY = "share_moment_guest_name_v1";
+
+    let stream = null;
+    let facingMode = "environment";
+    let revealAtIso = "";
+    let remainingShots = 0;
+    let isUploading = false;
+
+    const $ = id => document.getElementById(id);
+
+    function getSessionId() {
+      let sid = localStorage.getItem(SESSION_KEY);
+      if (!sid) {
+        sid = "ses_" + Math.random().toString(36).slice(2, 10) + "_" + Date.now().toString(36);
+        localStorage.setItem(SESSION_KEY, sid);
+      }
+      return sid;
+    }
+
+    function applyCanvasFilter(ctx, w, h, preset) {
+      ctx.save();
+      if (preset === "Warm Film") {
+        ctx.filter = "contrast(1.06) saturate(1.22) sepia(0.18)";
+      } else if (preset === "Retro 2000s") {
+        ctx.filter = "contrast(1.15) saturate(1.35) hue-rotate(-8deg)";
+      } else if (preset === "B&W Classic") {
+        ctx.filter = "grayscale(1) contrast(1.22)";
+      } else if (preset === "Night Flash") {
+        ctx.filter = "brightness(1.18) contrast(1.2) saturate(1.1)";
+      }
+      ctx.drawImage($("video"), 0, 0, w, h);
+      ctx.restore();
+
+      if (preset === "Night Flash") {
+        const grad = ctx.createRadialGradient(w * 0.5, h * 0.45, w * 0.1, w * 0.5, h * 0.5, w * 0.75);
+        grad.addColorStop(0, "rgba(255,248,225,0.14)");
+        grad.addColorStop(1, "rgba(10,10,12,0.42)");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, w, h);
+      }
+
+      const now = new Date();
+      const stamp = now.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "2-digit" });
+      ctx.font = `600 ${Math.max(14, Math.round(w * 0.026))}px monospace`;
+      ctx.fillStyle = "rgba(255, 198, 105, 0.88)";
+      ctx.textAlign = "right";
+      ctx.fillText(stamp, w - 18, h - 18);
+    }
+
+    async function startCamera() {
+      try {
+        if (stream) {
+          stream.getTracks().forEach(t => t.stop());
+        }
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode, width: { ideal: 1280 }, height: { ideal: 1600 } },
+          audio: false
+        });
+        $("video").srcObject = stream;
+        $("snapBtn").disabled = remainingShots <= 0 || isUploading;
+        $("statusMsg").textContent = "Kamera aktif. Siap jepret!";
+      } catch (err) {
+        $("statusMsg").textContent = "Izin kamera ditolak atau tidak tersedia di perangkat ini.";
+      }
+    }
+
+    function updateCountdown() {
+      if (!revealAtIso) {
+        showUnlockedGallery([]);
+        return;
+      }
+      const target = new Date(revealAtIso).getTime();
+      const diff = target - Date.now();
+      if (diff <= 0) {
+        $("lockedBox").style.display = "none";
+        $("unlockedBox").style.display = "block";
+        return;
+      }
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      $("countdownText").textContent =
+        `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+    }
+
+    function renderGallery(photos) {
+      const grid = $("galleryGrid");
+      grid.innerHTML = "";
+      if (!photos.length) {
+        grid.innerHTML = `<p style="color:var(--muted);font-size:0.9rem;">Belum ada foto di album ini.</p>`;
+        return;
+      }
+      photos.forEach(p => {
+        const card = document.createElement("div");
+        card.className = "photo-card";
+        card.innerHTML = `
+          <a href="${p.image_url}" target="_blank" rel="noopener">
+            <img src="${p.image_url}" alt="Foto oleh ${p.guest_name}" loading="lazy">
+          </a>
+          <div class="photo-meta">
+            <strong>${p.guest_name}</strong>
+            <span>${p.preset}</span>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function showUnlockedGallery(photos) {
+      $("lockedBox").style.display = "none";
+      $("unlockedBox").style.display = "block";
+      renderGallery(photos);
+    }
+
+    async function syncState() {
+      try {
+        const sid = encodeURIComponent(getSessionId());
+        const res = await fetch(`${API_URL}?session_id=${sid}&t=${Date.now()}`);
+        const data = await res.json();
+        if (!data.ok) return;
+
+        $("eventTitle").textContent = data.config.event_title || "Share Moment";
+        remainingShots = Number(data.remaining_shots ?? 0);
+        revealAtIso = data.config.reveal_at || "";
+        $("shotsBadge").textContent = `Sisa jepretan: ${remainingShots}`;
+
+        if (!data.config.camera_open || remainingShots <= 0) {
+          $("snapBtn").disabled = true;
+          if (!data.config.camera_open) {
+            $("statusMsg").textContent = "Sesi kamera acara telah ditutup.";
+          } else {
+            $("statusMsg").textContent = "Jatah jepretan kamu sudah habis. Tunggu waktu reveal ya!";
+          }
+        } else if (stream) {
+          $("snapBtn").disabled = isUploading;
+        }
+
+        if (data.is_revealed) {
+          showUnlockedGallery(data.photos || []);
+        } else {
+          $("lockedBox").style.display = "block";
+          $("unlockedBox").style.display = "none";
+          updateCountdown();
+        }
+      } catch (err) {
+        $("statusMsg").textContent = "Gagal menyinkronkan status acara.";
+      }
+    }
+
+    async function takeAndUploadPhoto() {
+      const video = $("video");
+      if (!stream || !video.videoWidth || remainingShots <= 0 || isUploading) return;
+
+      isUploading = true;
+      $("snapBtn").disabled = true;
+      $("statusMsg").textContent = "Mengompres & mengunggah foto...";
+
+      try {
+        const maxW = 1080;
+        const scale = Math.min(1, maxW / video.videoWidth);
+        const w = Math.round(video.videoWidth * scale);
+        const h = Math.round(video.videoHeight * scale);
+
+        const canvas = $("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        const preset = $("filmPreset").value;
+
+        applyCanvasFilter(ctx, w, h, preset);
+        const compressedBase64 = canvas.toDataURL("image/jpeg", 0.78);
+
+        const guestName = ($("guestName").value || "").trim() || "Tamu";
+        localStorage.setItem(NAME_KEY, guestName);
+
+        const res = await fetch(API_URL, {
+          method: "POST",
+          body: JSON.stringify({
+            session_id: getSessionId(),
+            guest_name: guestName,
+            preset,
+            image_base64: compressedBase64
+          })
+        });
+        const result = await res.json();
+
+        if (!result.ok) {
+          $("statusMsg").textContent = result.error || "Gagal mengunggah foto.";
+        } else {
+          remainingShots = Number(result.remaining_shots ?? 0);
+          $("shotsBadge").textContent = `Sisa jepretan: ${remainingShots}`;
+          $("statusMsg").textContent = `Foto tersimpan! Sisa jepretan: ${remainingShots}`;
+        }
+      } catch (err) {
+        $("statusMsg").textContent = "Terjadi gangguan jaringan saat upload.";
+      } finally {
+        isUploading = false;
+        $("snapBtn").disabled = !stream || remainingShots <= 0;
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const savedName = localStorage.getItem(NAME_KEY);
+      if (savedName) $("guestName").value = savedName;
+
+      $("filmPreset").addEventListener("change", () => {
+        $("presetInfo").textContent = $("filmPreset").value;
+      });
+      $("flipBtn").addEventListener("click", () => {
+        facingMode = facingMode === "environment" ? "user" : "environment";
+        startCamera();
+      });
+      $("startCamBtn").addEventListener("click", startCamera);
+      $("snapBtn").addEventListener("click", takeAndUploadPhoto);
+      $("refreshGalleryBtn").addEventListener("click", syncState);
+
+      syncState();
+      setInterval(updateCountdown, 1000);
+    });
+  </script>
+</body>
+</html>
