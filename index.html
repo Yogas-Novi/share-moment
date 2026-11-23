@@ -210,9 +210,12 @@
       object-fit: cover;
       display: block;
       background: #fff;
+      cursor: pointer;
     }
     .roll-item.is-collage img {
       aspect-ratio: 4 / 3;
+      object-fit: contain;
+      background: #fcfaf5;
     }
     .roll-info {
       padding: 7px 9px 3px;
@@ -241,7 +244,7 @@
       text-align: center;
     }
     .mini-upload { background: var(--accent); color: var(--accent-ink); }
-    .mini-dl {
+    .mini-dl, .mini-view {
       background: var(--card);
       color: var(--ink);
       border: 1px solid var(--border);
@@ -297,13 +300,17 @@
       aspect-ratio: 4 / 5;
       object-fit: cover;
       display: block;
+      cursor: pointer;
     }
     .photo-meta { padding: 8px 10px; font-size: 0.75rem; color: var(--muted); }
     .photo-meta strong { display: block; color: var(--ink); font-size: 0.82rem; }
-    .photo-foot { padding: 0 8px 8px; }
+    .photo-foot {
+      display: flex;
+      gap: 6px;
+      padding: 0 8px 8px;
+    }
     .dl-link {
-      display: block;
-      width: 100%;
+      flex: 1 1 48%;
       text-align: center;
       text-decoration: none;
       background: var(--card);
@@ -315,40 +322,64 @@
       font-weight: 700;
       cursor: pointer;
     }
-    .save-modal {
+    .preview-modal {
       position: fixed;
       inset: 0;
-      background: rgba(24, 17, 11, 0.72);
-      backdrop-filter: blur(4px);
+      background: rgba(24, 17, 11, 0.78);
+      backdrop-filter: blur(5px);
       display: none;
       align-items: center;
       justify-content: center;
-      padding: 18px;
+      padding: 16px;
       z-index: 99;
     }
-    .save-modal.open { display: flex; }
-    .save-sheet {
+    .preview-modal.open { display: flex; }
+    .preview-sheet {
+      position: relative;
       width: 100%;
-      max-width: 420px;
+      max-width: 460px;
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 20px;
+      border-radius: 22px;
       padding: 14px;
       text-align: center;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.32);
     }
-    .save-sheet img {
+    .modal-close-x {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--ink);
+      font-size: 1.25rem;
+      font-weight: 700;
+      line-height: 1;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
+      z-index: 2;
+    }
+    .preview-sheet img {
       width: 100%;
-      max-height: 62vh;
+      max-height: 70vh;
       object-fit: contain;
-      border-radius: 12px;
+      border-radius: 14px;
       background: #fff;
+      display: block;
     }
-    .save-tip {
-      margin: 10px 0 12px;
-      font-size: 0.82rem;
+    .ios-hint {
+      display: none;
+      margin: 8px 0 0;
+      font-size: 0.78rem;
       color: var(--muted);
-      line-height: 1.4;
+      line-height: 1.35;
     }
+    .ios-hint.show { display: block; }
   </style>
 </head>
 <body>
@@ -412,11 +443,12 @@
     </section>
   </div>
 
-  <div id="saveModal" class="save-modal" role="dialog" aria-modal="true" aria-label="Simpan Foto ke Galeri">
-    <div class="save-sheet">
-      <img id="modalImg" src="" alt="Pratinjau simpan foto">
-      <p class="save-tip">Untuk pengguna iPhone/Safari: <strong>tekan lama pada gambar</strong> di atas lalu pilih <strong>Simpan ke Foto</strong> (<em>Add to Photos</em>).</p>
-      <button id="closeModalBtn" type="button" class="btn-primary" style="width:100%;">Tutup</button>
+  <div id="previewModal" class="preview-modal" role="dialog" aria-modal="true" aria-label="Pratinjau Foto">
+    <div class="preview-sheet">
+      <button id="closeModalBtn" type="button" class="modal-close-x" aria-label="Tutup">&times;</button>
+      <img id="modalImg" src="" alt="Pratinjau foto besar">
+      <p id="iosSaveHint" class="ios-hint">Untuk iPhone/Safari: tekan lama pada gambar di atas lalu pilih <strong>Simpan ke Foto</strong>.</p>
+      <button id="modalDownloadBtn" type="button" class="btn-primary" style="width:100%;margin-top:12px;">Download</button>
     </div>
   </div>
 
@@ -433,6 +465,8 @@
     let serverRemaining = 0;
     let isBusy = false;
     let localRoll = [];
+    let currentModalSrc = "";
+    let currentModalFileName = "share-moment.jpg";
 
     const $ = id => document.getElementById(id);
     const isIosDevice = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
@@ -476,24 +510,29 @@
       $("openNativeCamBtn").disabled = slots <= 0 || isBusy || !cameraOpen;
     }
 
-    function openSaveModal(src) {
+    function openPreviewModal(src, fileName) {
+      currentModalSrc = src;
+      currentModalFileName = fileName || "share-moment.jpg";
       $("modalImg").src = src;
-      $("saveModal").classList.add("open");
+      $("iosSaveHint").classList.toggle("show", isIosDevice());
+      $("previewModal").classList.add("open");
     }
 
-    function closeSaveModal() {
-      $("saveModal").classList.remove("open");
+    function closePreviewModal() {
+      $("previewModal").classList.remove("open");
       $("modalImg").src = "";
+      currentModalSrc = "";
     }
 
     async function triggerDownload(urlOrDataUrl, fileName) {
+      if (!urlOrDataUrl) return;
       try {
         const res = await fetch(urlOrDataUrl);
         const blob = await res.blob();
         const blobUrl = URL.createObjectURL(blob);
 
         if (isIosDevice()) {
-          openSaveModal(blobUrl);
+          openPreviewModal(blobUrl, fileName);
           setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
           return;
         }
@@ -507,7 +546,7 @@
         setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
       } catch (err) {
         if (isIosDevice()) {
-          openSaveModal(urlOrDataUrl);
+          openPreviewModal(urlOrDataUrl, fileName);
         } else {
           window.open(urlOrDataUrl, "_blank", "noopener");
         }
@@ -529,7 +568,10 @@
         const card = document.createElement("div");
         card.className = "roll-item" + (item.isCollage ? " is-collage" : "");
 
-        let actionsHtml = `<button type="button" class="mini-btn mini-dl" data-action="download" data-id="${item.id}">Download</button>`;
+        let actionsHtml = `
+          <button type="button" class="mini-btn mini-view" data-action="view" data-id="${item.id}">Lihat</button>
+          <button type="button" class="mini-btn mini-dl" data-action="download" data-id="${item.id}">Download</button>
+        `;
 
         if (item.status === "uploaded") {
           actionsHtml += `<div class="badge-done">Tersimpan di Album</div>`;
@@ -543,7 +585,7 @@
         }
 
         card.innerHTML = `
-          <img src="${item.dataUrl}" alt="${item.preset}">
+          <img src="${item.dataUrl}" alt="${item.preset}" data-action="view" data-id="${item.id}">
           <div class="roll-info">
             <span>${item.preset}</span>
             <span>${formatSizeKbMb(item.bytes)}</span>
@@ -646,9 +688,10 @@
     }
 
     async function processNativePhoto(file, withFrame) {
+      const rawDataUrl = await blobToDataUrlAsync(file);
+
       if (!withFrame) {
-        const dataUrl = await blobToDataUrlAsync(file);
-        return { dataUrl, bytes: file.size, preset: "Kamera HP" };
+        return { dataUrl: rawDataUrl, rawDataUrl, bytes: file.size, preset: "Kamera HP" };
       }
 
       const img = await loadImageFromFile(file);
@@ -666,7 +709,16 @@
 
       const blob = await canvasToBlobAsync(canvas, 0.95);
       const dataUrl = blob ? await blobToDataUrlAsync(blob) : canvas.toDataURL("image/jpeg", 0.95);
-      return { dataUrl, bytes: blob ? blob.size : file.size, preset: "Auto Frame" };
+      return { dataUrl, rawDataUrl, bytes: blob ? blob.size : file.size, preset: "Auto Frame" };
+    }
+
+    function getCollageGridSpec(n) {
+      if (n === 2) return { cols: 2, rows: 1 };
+      if (n === 3) return { cols: 3, rows: 1 };
+      if (n === 4) return { cols: 2, rows: 2 };
+      if (n <= 6) return { cols: 3, rows: 2 };
+      if (n <= 9) return { cols: 3, rows: 3 };
+      return { cols: 4, rows: 3 };
     }
 
     function getCollageRects(n, w, h) {
@@ -746,7 +798,6 @@
           { x: w * 0.79, y: h * 0.75, w: w * 0.21, h: h * 0.25 }
         ];
       }
-      // 10 kotak bervariasi seperti pola gambar rujukan
       return [
         { x: 0, y: 0, w: w * 0.21, h: h * 0.5 },
         { x: w * 0.21, y: 0, w: w * 0.36, h: h * 0.55 },
@@ -793,12 +844,27 @@
       $("statusMsg").textContent = `Menyusun kolase ${photos.length} foto...`;
 
       try {
-        const imgs = await Promise.all(photos.map(p => loadImageFromSrc(p.dataUrl)));
-        const w = 2400;
-        const h = 1800;
-        const withFrame = $("autoFrameToggle").checked;
-        const bannerH = withFrame ? getBannerHeightForPhoto(w, h) : 0;
-        const gap = 8;
+        // Selalu pakai foto murni (rawDataUrl) di tiap kotak agar bebas frame-in-frame
+        const imgs = await Promise.all(photos.map(p => loadImageFromSrc(p.rawDataUrl || p.dataUrl)));
+
+        // Besarkan ukuran frame/kanvas mengikuti dimensi asli tiap foto agar tidak menyusut kecil
+        const avgW = Math.round(imgs.reduce((sum, im) => sum + (im.naturalWidth || im.width), 0) / imgs.length);
+        const avgH = Math.round(imgs.reduce((sum, im) => sum + (im.naturalHeight || im.height), 0) / imgs.length);
+        const { cols, rows } = getCollageGridSpec(imgs.length);
+
+        const maxSafeEdge = 9000;
+        let w = avgW * cols;
+        let h = avgH * rows;
+        const largest = Math.max(w, h);
+        if (largest > maxSafeEdge) {
+          const factor = maxSafeEdge / largest;
+          w = Math.round(w * factor);
+          h = Math.round(h * factor);
+        }
+
+        // Kolase selalu memakai 1 frame di bagian paling bawah (baik Auto Frame ON maupun OFF)
+        const bannerH = getBannerHeightForPhoto(w, h);
+        const gap = Math.max(12, Math.round(Math.min(w, h) * 0.004));
 
         const canvas = $("canvas");
         canvas.width = w;
@@ -813,12 +879,10 @@
           drawCoverImage(ctx, img, rects[idx], gap);
         });
 
-        if (withFrame) {
-          drawAutoFrameBanner(ctx, w, h, bannerH);
-        }
+        drawAutoFrameBanner(ctx, w, h, bannerH);
 
-        const blob = await canvasToBlobAsync(canvas, 0.94);
-        const dataUrl = blob ? await blobToDataUrlAsync(blob) : canvas.toDataURL("image/jpeg", 0.94);
+        const blob = await canvasToBlobAsync(canvas, 0.92);
+        const dataUrl = blob ? await blobToDataUrlAsync(blob) : canvas.toDataURL("image/jpeg", 0.92);
         const bytes = blob ? blob.size : 0;
 
         localRoll = localRoll.filter(item => !item.isCollage);
@@ -855,7 +919,7 @@
 
       try {
         const withFrame = $("autoFrameToggle").checked;
-        const { dataUrl, bytes, preset } = await processNativePhoto(file, withFrame);
+        const { dataUrl, rawDataUrl, bytes, preset } = await processNativePhoto(file, withFrame);
 
         if (!dataUrl) {
           $("statusMsg").textContent = "Gagal membaca hasil foto dari kamera HP.";
@@ -863,6 +927,7 @@
           localRoll.unshift({
             id: "shot_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
             dataUrl,
+            rawDataUrl,
             bytes,
             preset,
             status: "pending"
@@ -992,16 +1057,16 @@
       photos.forEach((p, idx) => {
         const card = document.createElement("div");
         card.className = "photo-card";
+        const fileName = `walimatul-urs-foto-${idx + 1}.jpg`;
         card.innerHTML = `
-          <a href="${p.image_url}" target="_blank" rel="noopener">
-            <img src="${p.image_url}" alt="Foto oleh ${p.guest_name}" loading="lazy">
-          </a>
+          <img src="${p.image_url}" alt="Foto oleh ${p.guest_name}" loading="lazy" data-gallery-view="${p.image_url}" data-gallery-name="${fileName}">
           <div class="photo-meta">
             <strong>${p.guest_name}</strong>
             <span>${p.preset}</span>
           </div>
           <div class="photo-foot">
-            <button type="button" class="dl-link" data-gallery-dl="${p.image_url}" data-gallery-name="walimatul-urs-foto-${idx + 1}.jpg">Download</button>
+            <button type="button" class="dl-link" data-gallery-view="${p.image_url}" data-gallery-name="${fileName}">Lihat</button>
+            <button type="button" class="dl-link" data-gallery-dl="${p.image_url}" data-gallery-name="${fileName}">Download</button>
           </div>
         `;
         grid.appendChild(card);
@@ -1054,27 +1119,37 @@
       $("collageBtn").addEventListener("click", () => buildCollage(false));
       $("uploadAllBtn").addEventListener("click", handleUploadAll);
       $("refreshGalleryBtn").addEventListener("click", syncState);
-      $("closeModalBtn").addEventListener("click", closeSaveModal);
-      $("saveModal").addEventListener("click", e => {
-        if (e.target === $("saveModal")) closeSaveModal();
+      $("closeModalBtn").addEventListener("click", closePreviewModal);
+      $("modalDownloadBtn").addEventListener("click", () => {
+        triggerDownload(currentModalSrc, currentModalFileName);
+      });
+      $("previewModal").addEventListener("click", e => {
+        if (e.target === $("previewModal")) closePreviewModal();
       });
 
       $("rollContainer").addEventListener("click", e => {
-        const btn = e.target.closest("button[data-action]");
-        if (!btn) return;
-        const { action, id } = btn.dataset;
+        const target = e.target.closest("[data-action]");
+        if (!target) return;
+        const { action, id } = target.dataset;
+        const item = localRoll.find(x => x.id === id);
+        if (!item) return;
+
         if (action === "upload") handleUploadOne(id);
         if (action === "retake") handleRetake(id);
-        if (action === "download") {
-          const item = localRoll.find(x => x.id === id);
-          if (item) triggerDownload(item.dataUrl, `share-moment-${item.id}.jpg`);
-        }
+        if (action === "view") openPreviewModal(item.dataUrl, `share-moment-${item.id}.jpg`);
+        if (action === "download") triggerDownload(item.dataUrl, `share-moment-${item.id}.jpg`);
       });
 
       $("galleryGrid").addEventListener("click", e => {
-        const btn = e.target.closest("button[data-gallery-dl]");
-        if (!btn) return;
-        triggerDownload(btn.dataset.galleryDl, btn.dataset.galleryName);
+        const viewEl = e.target.closest("[data-gallery-view]");
+        if (viewEl) {
+          openPreviewModal(viewEl.dataset.galleryView, viewEl.dataset.galleryName);
+          return;
+        }
+        const dlEl = e.target.closest("[data-gallery-dl]");
+        if (dlEl) {
+          triggerDownload(dlEl.dataset.galleryDl, dlEl.dataset.galleryName);
+        }
       });
 
       syncState();
