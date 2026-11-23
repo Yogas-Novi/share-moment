@@ -536,44 +536,36 @@
       ctx.fillRect(0, photoH, photoW, bannerH);
 
       ctx.strokeStyle = "#e6dccb";
-      ctx.lineWidth = Math.max(2, Math.round(photoW * 0.0018));
+      ctx.lineWidth = Math.max(1.5, Math.round(photoW * 0.0015));
       ctx.beginPath();
       ctx.moveTo(0, photoH);
       ctx.lineTo(photoW, photoH);
       ctx.stroke();
 
-      const padX = Math.max(32, Math.round(photoW * 0.042));
-      const dividerX = Math.round(photoW * 0.65);
-      const kickerFont = Math.max(16, Math.round(bannerH * 0.16));
-      const nameFont = Math.max(24, Math.round(bannerH * 0.29));
-      const dateFont = Math.max(20, Math.round(bannerH * 0.23));
-
-      ctx.strokeStyle = "#d8c8b0";
-      ctx.lineWidth = Math.max(2, Math.round(photoW * 0.002));
-      ctx.beginPath();
-      ctx.moveTo(dividerX, photoH + Math.round(bannerH * 0.2));
-      ctx.lineTo(dividerX, photoH + Math.round(bannerH * 0.8));
-      ctx.stroke();
+      const padX = Math.max(20, Math.round(photoW * 0.032));
+      const kickerFont = Math.max(11, Math.min(20, Math.round(bannerH * 0.13)));
+      const nameFont = Math.max(14, Math.min(26, Math.round(bannerH * 0.21)));
+      const dateFont = Math.max(13, Math.min(24, Math.round(bannerH * 0.18)));
 
       const centerY = photoH + bannerH / 2;
+      const rightAreaW = Math.round(photoW * 0.28);
+      const maxLeftW = Math.max(90, photoW - rightAreaW - padX * 2);
 
       ctx.textAlign = "left";
       ctx.textBaseline = "alphabetic";
       ctx.fillStyle = "#8a5a22";
       ctx.font = `700 ${kickerFont}px system-ui, -apple-system, sans-serif`;
-      const maxLeftW = Math.max(140, dividerX - padX - 24);
       ctx.fillText(FRAME_KICKER, padX, centerY - Math.round(nameFont * 0.22), maxLeftW);
 
       ctx.fillStyle = "#241911";
       ctx.font = `600 ${nameFont}px Georgia, "Times New Roman", serif`;
-      ctx.fillText(FRAME_LEFT_TEXT, padX, centerY + Math.round(nameFont * 0.78), maxLeftW);
+      ctx.fillText(FRAME_LEFT_TEXT, padX, centerY + Math.round(nameFont * 0.76), maxLeftW);
 
       ctx.textAlign = "right";
       ctx.textBaseline = "middle";
       ctx.fillStyle = "#3a2b1f";
-      ctx.font = `600 ${dateFont}px Georgia, "Times New Roman", serif`;
-      const maxRightW = Math.max(100, photoW - dividerX - padX - 24);
-      ctx.fillText(FRAME_RIGHT_TEXT, photoW - padX, centerY, maxRightW);
+      ctx.font = `500 ${dateFont}px Georgia, "Times New Roman", serif`;
+      ctx.fillText(FRAME_RIGHT_TEXT, photoW - padX, centerY, rightAreaW);
 
       ctx.restore();
     }
@@ -615,7 +607,7 @@
       const img = await loadImageFromFile(file);
       const w = img.naturalWidth || img.width;
       const h = img.naturalHeight || img.height;
-      const bannerH = Math.max(110, Math.round(h * 0.125));
+      const bannerH = Math.max(76, Math.round(h * 0.11));
 
       const canvas = $("canvas");
       canvas.width = w;
