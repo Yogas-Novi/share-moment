@@ -114,40 +114,8 @@
       font-size: 0.9rem;
     }
     .name-input::placeholder { color: var(--muted); }
-    .preset-label {
-      margin: 12px 2px 6px;
-      font-size: 0.78rem;
-      font-weight: 700;
-      color: var(--muted);
-    }
-    .preset-strip {
-      display: flex;
-      gap: 8px;
-      overflow-x: auto;
-      padding: 2px 2px 6px;
-      scrollbar-width: none;
-    }
-    .preset-strip::-webkit-scrollbar { display: none; }
-    .preset-chip {
-      flex: 0 0 auto;
-      background: var(--surface);
-      color: var(--muted);
-      border: 1px solid transparent;
-      border-radius: 999px;
-      padding: 7px 13px;
-      font: inherit;
-      font-size: 0.8rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }
-    .preset-chip.active {
-      background: rgba(154, 103, 40, 0.16);
-      color: var(--accent-deep);
-      border-color: var(--accent);
-    }
     .cam-launch-box {
-      margin-top: 10px;
+      margin-top: 12px;
       background: var(--surface);
       border: 1px dashed var(--border);
       border-radius: 18px;
@@ -156,7 +124,7 @@
     }
     .cam-launch-box p {
       margin: 0 0 12px;
-      font-size: 0.83rem;
+      font-size: 0.84rem;
       color: var(--muted);
       line-height: 1.45;
     }
@@ -166,9 +134,9 @@
       color: var(--accent-ink);
       border: none;
       border-radius: 15px;
-      padding: 13px 16px;
+      padding: 14px 16px;
       font: inherit;
-      font-size: 0.92rem;
+      font-size: 0.94rem;
       font-weight: 800;
       cursor: pointer;
       box-shadow: 0 6px 16px rgba(154, 103, 40, 0.22);
@@ -368,7 +336,7 @@
     <header class="hero">
       <span class="kicker">Share Moment</span>
       <h1 id="eventTitle">Share Kebahagiaan Bersama Kami</h1>
-      <p>Jepret lewat kamera bawaan HP kamu, simpan ke galeri atau unggah ke album (maks. 2 MB/foto)</p>
+      <p>Jepret lewat kamera bawaan HP kamu, simpan ke galeri atau unggah ke album bersama</p>
     </header>
 
     <div class="top-bar">
@@ -382,17 +350,8 @@
     <section class="card">
       <input id="guestName" class="name-input" type="text" maxlength="50" placeholder="Nama kamu (opsional)">
 
-      <div class="preset-label">Pilih nuansa foto sebelum jepret:</div>
-      <div id="presetStrip" class="preset-strip" role="tablist" aria-label="Pilih Filter">
-        <button type="button" class="preset-chip active" data-preset="Tanpa Filter">Tanpa Filter</button>
-        <button type="button" class="preset-chip" data-preset="Warm Film">Warm Film</button>
-        <button type="button" class="preset-chip" data-preset="Retro 2000s">Retro 2000s</button>
-        <button type="button" class="preset-chip" data-preset="B&W Classic">B&amp;W Classic</button>
-        <button type="button" class="preset-chip" data-preset="Night Flash">Night Flash</button>
-      </div>
-
       <div class="cam-launch-box">
-        <p>Menggunakan aplikasi <strong>kamera bawaan HP</strong> agar kualitas jepretan tetap mengikuti pengaturan HP masing-masing.</p>
+        <p>Menggunakan aplikasi <strong>kamera bawaan HP</strong> dengan kualitas sesuai pengaturan HP masing-masing.</p>
         <button id="openNativeCamBtn" type="button" class="cam-big-btn" disabled>Ambil Foto dengan Kamera HP</button>
         <input id="nativeCameraInput" type="file" accept="image/*" capture="environment" style="display:none;">
       </div>
@@ -442,12 +401,10 @@
     const API_URL = "https://script.google.com/macros/s/AKfycbxLP7SVW9eDLK0-RL9L2eFwSFNCWqoWXlRx87mW3RZl5fh3NrTMADyluscpxw1xXyvP/exec";
     const SESSION_KEY = "share_moment_session_v1";
     const NAME_KEY = "share_moment_guest_name_v1";
-    const MAX_BYTES = 2 * 1024 * 1024;
     const FRAME_KICKER = "WALIMATUL 'URS";
     const FRAME_LEFT_TEXT = "Yogaswara & Novi Erlinda";
     const FRAME_RIGHT_TEXT = "12 Désémber 2026";
 
-    let selectedPreset = "Tanpa Filter";
     let revealAtIso = "";
     let cameraOpen = true;
     let serverRemaining = 0;
@@ -464,14 +421,6 @@
         localStorage.setItem(SESSION_KEY, sid);
       }
       return sid;
-    }
-
-    function getCanvasFilter(preset) {
-      if (preset === "Warm Film") return "contrast(1.06) saturate(1.22) sepia(0.18)";
-      if (preset === "Retro 2000s") return "contrast(1.15) saturate(1.35) hue-rotate(-8deg)";
-      if (preset === "B&W Classic") return "grayscale(1) contrast(1.22)";
-      if (preset === "Night Flash") return "brightness(1.18) contrast(1.2) saturate(1.1)";
-      return "none";
     }
 
     function getPendingCount() {
@@ -565,7 +514,7 @@
         }
 
         card.innerHTML = `
-          <img src="${item.dataUrl}" alt="Pratinjau ${item.preset}">
+          <img src="${item.dataUrl}" alt="Pratinjau foto">
           <div class="roll-info">
             <span>${item.preset}</span>
             <span>${formatSizeKbMb(item.bytes)}</span>
@@ -582,29 +531,28 @@
 
     function drawAutoFrameBanner(ctx, photoW, photoH, bannerH) {
       ctx.save();
-      ctx.filter = "none";
 
       ctx.fillStyle = "#fcfaf5";
       ctx.fillRect(0, photoH, photoW, bannerH);
 
       ctx.strokeStyle = "#e6dccb";
-      ctx.lineWidth = Math.max(1.5, Math.round(photoW * 0.0016));
+      ctx.lineWidth = Math.max(2, Math.round(photoW * 0.0018));
       ctx.beginPath();
       ctx.moveTo(0, photoH);
       ctx.lineTo(photoW, photoH);
       ctx.stroke();
 
-      const padX = Math.max(24, Math.round(photoW * 0.04));
+      const padX = Math.max(32, Math.round(photoW * 0.042));
       const dividerX = Math.round(photoW * 0.65);
-      const kickerFont = Math.max(11, Math.min(20, Math.round(bannerH * 0.13)));
-      const nameFont = Math.max(16, Math.min(34, Math.round(bannerH * 0.24)));
-      const dateFont = Math.max(14, Math.min(28, Math.round(bannerH * 0.19)));
+      const kickerFont = Math.max(16, Math.round(bannerH * 0.16));
+      const nameFont = Math.max(24, Math.round(bannerH * 0.29));
+      const dateFont = Math.max(20, Math.round(bannerH * 0.23));
 
       ctx.strokeStyle = "#d8c8b0";
-      ctx.lineWidth = Math.max(1.5, Math.round(photoW * 0.0018));
+      ctx.lineWidth = Math.max(2, Math.round(photoW * 0.002));
       ctx.beginPath();
-      ctx.moveTo(dividerX, photoH + Math.round(bannerH * 0.22));
-      ctx.lineTo(dividerX, photoH + Math.round(bannerH * 0.78));
+      ctx.moveTo(dividerX, photoH + Math.round(bannerH * 0.2));
+      ctx.lineTo(dividerX, photoH + Math.round(bannerH * 0.8));
       ctx.stroke();
 
       const centerY = photoH + bannerH / 2;
@@ -613,18 +561,18 @@
       ctx.textBaseline = "alphabetic";
       ctx.fillStyle = "#8a5a22";
       ctx.font = `700 ${kickerFont}px system-ui, -apple-system, sans-serif`;
-      const maxLeftW = Math.max(100, dividerX - padX - 20);
+      const maxLeftW = Math.max(140, dividerX - padX - 24);
       ctx.fillText(FRAME_KICKER, padX, centerY - Math.round(nameFont * 0.22), maxLeftW);
 
       ctx.fillStyle = "#241911";
       ctx.font = `600 ${nameFont}px Georgia, "Times New Roman", serif`;
-      ctx.fillText(FRAME_LEFT_TEXT, padX, centerY + Math.round(nameFont * 0.76), maxLeftW);
+      ctx.fillText(FRAME_LEFT_TEXT, padX, centerY + Math.round(nameFont * 0.78), maxLeftW);
 
       ctx.textAlign = "right";
       ctx.textBaseline = "middle";
       ctx.fillStyle = "#3a2b1f";
-      ctx.font = `500 ${dateFont}px Georgia, "Times New Roman", serif`;
-      const maxRightW = Math.max(80, photoW - dividerX - padX - 20);
+      ctx.font = `600 ${dateFont}px Georgia, "Times New Roman", serif`;
+      const maxRightW = Math.max(100, photoW - dividerX - padX - 24);
       ctx.fillText(FRAME_RIGHT_TEXT, photoW - padX, centerY, maxRightW);
 
       ctx.restore();
@@ -658,53 +606,28 @@
       });
     }
 
-    async function processNativePhoto(file, preset, withFrame) {
-      const img = await loadImageFromFile(file);
-      const srcW = img.naturalWidth || img.width;
-      const srcH = img.naturalHeight || img.height;
-      const maxSide = 2400;
-      const longEdge = Math.max(srcW, srcH);
-      const initialScale = Math.min(1, maxSide / longEdge);
-
-      let quality = 0.92;
-      let blob = null;
-
-      for (let attempt = 0; attempt < 10; attempt++) {
-        const scale = initialScale * (attempt >= 5 ? Math.pow(0.84, attempt - 4) : 1);
-        const w = Math.max(600, Math.round(srcW * scale));
-        const h = Math.max(600, Math.round(srcH * scale));
-        const bannerH = withFrame ? Math.max(76, Math.round(h * 0.12)) : 0;
-
-        const canvas = $("canvas");
-        canvas.width = w;
-        canvas.height = h + bannerH;
-        const ctx = canvas.getContext("2d");
-
-        ctx.save();
-        ctx.filter = getCanvasFilter(preset);
-        ctx.drawImage(img, 0, 0, w, h);
-        ctx.restore();
-
-        if (preset === "Night Flash") {
-          const grad = ctx.createRadialGradient(w * 0.5, h * 0.45, w * 0.1, w * 0.5, h * 0.5, w * 0.75);
-          grad.addColorStop(0, "rgba(255,248,225,0.14)");
-          grad.addColorStop(1, "rgba(10,10,12,0.42)");
-          ctx.fillStyle = grad;
-          ctx.fillRect(0, 0, w, h);
-        }
-
-        if (withFrame) {
-          drawAutoFrameBanner(ctx, w, h, bannerH);
-        }
-
-        blob = await canvasToBlobAsync(canvas, quality);
-        if (!blob) break;
-        if (blob.size <= MAX_BYTES) break;
-        quality = Math.max(0.50, quality - 0.08);
+    async function processNativePhoto(file, withFrame) {
+      if (!withFrame) {
+        const dataUrl = await blobToDataUrlAsync(file);
+        return { dataUrl, bytes: file.size, preset: "Kamera HP" };
       }
 
-      const dataUrl = blob ? await blobToDataUrlAsync(blob) : "";
-      return { dataUrl, bytes: blob ? blob.size : 0 };
+      const img = await loadImageFromFile(file);
+      const w = img.naturalWidth || img.width;
+      const h = img.naturalHeight || img.height;
+      const bannerH = Math.max(110, Math.round(h * 0.125));
+
+      const canvas = $("canvas");
+      canvas.width = w;
+      canvas.height = h + bannerH;
+      const ctx = canvas.getContext("2d");
+
+      ctx.drawImage(img, 0, 0, w, h);
+      drawAutoFrameBanner(ctx, w, h, bannerH);
+
+      const blob = await canvasToBlobAsync(canvas, 0.95);
+      const dataUrl = blob ? await blobToDataUrlAsync(blob) : canvas.toDataURL("image/jpeg", 0.95);
+      return { dataUrl, bytes: blob ? blob.size : file.size, preset: "Auto Frame" };
     }
 
     async function handleNativeFileChange(e) {
@@ -714,11 +637,11 @@
 
       isBusy = true;
       updateQuotaUI();
-      $("statusMsg").textContent = "Memproses hasil foto dari kamera HP...";
+      $("statusMsg").textContent = "Menyiapkan hasil foto dari kamera HP...";
 
       try {
         const withFrame = $("autoFrameToggle").checked;
-        const { dataUrl, bytes } = await processNativePhoto(file, selectedPreset, withFrame);
+        const { dataUrl, bytes, preset } = await processNativePhoto(file, withFrame);
 
         if (!dataUrl) {
           $("statusMsg").textContent = "Gagal membaca hasil foto dari kamera HP.";
@@ -727,7 +650,7 @@
             id: "shot_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
             dataUrl,
             bytes,
-            preset: selectedPreset,
+            preset,
             status: "pending"
           });
           $("statusMsg").textContent = `Masuk ke roll HP (${formatSizeKbMb(bytes)}). Sisa kuota: ${getAvailableSlots()}`;
@@ -901,14 +824,6 @@
     document.addEventListener("DOMContentLoaded", () => {
       const savedName = localStorage.getItem(NAME_KEY);
       if (savedName) $("guestName").value = savedName;
-
-      $("presetStrip").addEventListener("click", e => {
-        const chip = e.target.closest(".preset-chip");
-        if (!chip) return;
-        document.querySelectorAll(".preset-chip").forEach(c => c.classList.remove("active"));
-        chip.classList.add("active");
-        selectedPreset = chip.dataset.preset;
-      });
 
       $("openNativeCamBtn").addEventListener("click", () => {
         if (getAvailableSlots() <= 0 || isBusy || !cameraOpen) return;
