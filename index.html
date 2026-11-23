@@ -141,7 +141,7 @@
       cursor: pointer;
       box-shadow: 0 6px 16px rgba(154, 103, 40, 0.22);
     }
-    .cam-big-btn:disabled, .btn-primary:disabled {
+    .cam-big-btn:disabled, .btn-primary:disabled, .btn-secondary:disabled {
       opacity: 0.45;
       cursor: not-allowed;
       box-shadow: none;
@@ -160,17 +160,30 @@
       align-items: center;
       gap: 8px;
       margin-bottom: 10px;
+      flex-wrap: wrap;
     }
     .sec-head h2 { margin: 0; font-size: 1rem; color: var(--ink); }
     .sec-sub { font-size: 0.78rem; color: var(--muted); }
+    .head-actions { display: flex; gap: 8px; align-items: center; }
     .btn-primary {
       background: var(--accent);
       color: var(--accent-ink);
       border: none;
       border-radius: 12px;
-      padding: 9px 14px;
+      padding: 9px 13px;
       font: inherit;
-      font-size: 0.82rem;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--accent-deep);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 9px 12px;
+      font: inherit;
+      font-size: 0.8rem;
       font-weight: 700;
       cursor: pointer;
     }
@@ -187,12 +200,19 @@
       display: flex;
       flex-direction: column;
     }
+    .roll-item.is-collage {
+      grid-column: 1 / -1;
+      border-color: var(--accent);
+    }
     .roll-item img {
       width: 100%;
       aspect-ratio: 4 / 5;
       object-fit: cover;
       display: block;
       background: #fff;
+    }
+    .roll-item.is-collage img {
+      aspect-ratio: 4 / 3;
     }
     .roll-info {
       padding: 7px 9px 3px;
@@ -348,7 +368,7 @@
     </div>
 
     <section class="card">
-      <input id="guestName" class="name-input" type="text" maxlength="50" placeholder="Nama kamu (opsional)">
+      <input id="guestName" class="name-input" type="text" maxlength="50" placeholder="Tulis nama kamu ( opsional )">
 
       <div class="cam-launch-box">
         <p>Menggunakan aplikasi <strong>kamera bawaan HP</strong> dengan kualitas sesuai pengaturan HP masing-masing.</p>
@@ -366,7 +386,10 @@
           <h2>Roll Pratinjau di HP</h2>
           <div id="rollCountSub" class="sec-sub">Roll HP: 0 · Pilih foto yang mau diunggah atau diunduh</div>
         </div>
-        <button id="uploadAllBtn" type="button" class="btn-primary" disabled>Upload Semua (0)</button>
+        <div class="head-actions">
+          <button id="collageBtn" type="button" class="btn-secondary" disabled>Kolase</button>
+          <button id="uploadAllBtn" type="button" class="btn-primary" disabled>Upload Semua (0)</button>
+        </div>
       </div>
       <div id="rollContainer">
         <div class="empty-roll">Belum ada foto di roll HP. Tekan <strong>Ambil Foto dengan Kamera HP</strong> untuk mulai menjepret.</div>
@@ -423,6 +446,10 @@
       return sid;
     }
 
+    function getSinglePhotos() {
+      return localRoll.filter(item => !item.isCollage);
+    }
+
     function getPendingCount() {
       return localRoll.filter(item => item.status === "pending").length;
     }
@@ -440,8 +467,10 @@
     function updateQuotaUI() {
       const pending = getPendingCount();
       const slots = getAvailableSlots();
+      const photoCount = getSinglePhotos().length;
       $("shotsBadge").textContent = `Sisa kuota: ${slots}`;
-      $("rollCountSub").textContent = `Roll HP: ${localRoll.length} · Pilih foto yang mau diunggah atau diunduh`;
+      $("rollCountSub").textContent = `Roll HP: ${localRoll.length} (${photoCount} foto) · Pilih foto yang mau diunggah atau diunduh`;
+      $("collageBtn").disabled = photoCount < 2 || isBusy;
       $("uploadAllBtn").textContent = `Upload Semua (${pending})`;
       $("uploadAllBtn").disabled = pending === 0 || isBusy || !cameraOpen;
       $("openNativeCamBtn").disabled = slots <= 0 || isBusy || !cameraOpen;
@@ -498,7 +527,7 @@
 
       localRoll.forEach(item => {
         const card = document.createElement("div");
-        card.className = "roll-item";
+        card.className = "roll-item" + (item.isCollage ? " is-collage" : "");
 
         let actionsHtml = `<button type="button" class="mini-btn mini-dl" data-action="download" data-id="${item.id}">Download</button>`;
 
@@ -514,7 +543,7 @@
         }
 
         card.innerHTML = `
-          <img src="${item.dataUrl}" alt="Pratinjau foto">
+          <img src="${item.dataUrl}" alt="${item.preset}">
           <div class="roll-info">
             <span>${item.preset}</span>
             <span>${formatSizeKbMb(item.bytes)}</span>
@@ -527,6 +556,13 @@
       box.innerHTML = "";
       box.appendChild(grid);
       updateQuotaUI();
+    }
+
+    function getBannerHeightForPhoto(photoW, photoH) {
+      const isPortrait = photoH > photoW;
+      return isPortrait
+        ? Math.max(72, Math.round(photoW * 0.115))
+        : Math.max(84, Math.round(photoH * 0.105));
     }
 
     function drawAutoFrameBanner(ctx, photoW, photoH, bannerH) {
@@ -542,14 +578,16 @@
       ctx.lineTo(photoW, photoH);
       ctx.stroke();
 
-      const padX = Math.max(24, Math.round(photoW * 0.035));
-      const kickerFont = Math.max(11, Math.round(bannerH * 0.11));
-      const nameFont = Math.max(14, Math.round(bannerH * 0.16));
-      const dateFont = Math.max(13, Math.round(bannerH * 0.14));
+      const isPortrait = photoH > photoW;
+      const refUnit = isPortrait ? photoW : bannerH;
+      const padX = Math.max(20, Math.round(photoW * (isPortrait ? 0.036 : 0.035)));
+      const kickerFont = Math.max(10, Math.round(refUnit * (isPortrait ? 0.014 : 0.11)));
+      const nameFont = Math.max(13, Math.round(refUnit * (isPortrait ? 0.021 : 0.16)));
+      const dateFont = Math.max(12, Math.round(refUnit * (isPortrait ? 0.019 : 0.14)));
 
       const centerY = photoH + bannerH / 2;
-      const rightAreaW = Math.round(photoW * 0.26);
-      const maxLeftW = Math.max(100, photoW - rightAreaW - padX * 2);
+      const rightAreaW = Math.round(photoW * (isPortrait ? 0.34 : 0.26));
+      const maxLeftW = Math.max(90, photoW - rightAreaW - padX * 2);
 
       ctx.textAlign = "left";
       ctx.textBaseline = "alphabetic";
@@ -568,6 +606,15 @@
       ctx.fillText(FRAME_RIGHT_TEXT, photoW - padX, centerY, rightAreaW);
 
       ctx.restore();
+    }
+
+    function loadImageFromSrc(src) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = err => reject(err);
+        img.src = src;
+      });
     }
 
     function loadImageFromFile(file) {
@@ -607,7 +654,7 @@
       const img = await loadImageFromFile(file);
       const w = img.naturalWidth || img.width;
       const h = img.naturalHeight || img.height;
-      const bannerH = Math.max(84, Math.round(h * 0.105));
+      const bannerH = getBannerHeightForPhoto(w, h);
 
       const canvas = $("canvas");
       canvas.width = w;
@@ -622,6 +669,179 @@
       return { dataUrl, bytes: blob ? blob.size : file.size, preset: "Auto Frame" };
     }
 
+    function getCollageRects(n, w, h) {
+      if (n === 2) {
+        return [
+          { x: 0, y: 0, w: w * 0.5, h },
+          { x: w * 0.5, y: 0, w: w * 0.5, h }
+        ];
+      }
+      if (n === 3) {
+        return [
+          { x: 0, y: 0, w: w * 0.56, h },
+          { x: w * 0.56, y: 0, w: w * 0.44, h: h * 0.5 },
+          { x: w * 0.56, y: h * 0.5, w: w * 0.44, h: h * 0.5 }
+        ];
+      }
+      if (n === 4) {
+        return [
+          { x: 0, y: 0, w: w * 0.5, h: h * 0.5 },
+          { x: w * 0.5, y: 0, w: w * 0.5, h: h * 0.5 },
+          { x: 0, y: h * 0.5, w: w * 0.5, h: h * 0.5 },
+          { x: w * 0.5, y: h * 0.5, w: w * 0.5, h: h * 0.5 }
+        ];
+      }
+      if (n === 5) {
+        return [
+          { x: 0, y: 0, w: w * 0.52, h: h * 0.56 },
+          { x: w * 0.52, y: 0, w: w * 0.48, h: h * 0.56 },
+          { x: 0, y: h * 0.56, w: w * 0.34, h: h * 0.44 },
+          { x: w * 0.34, y: h * 0.56, w: w * 0.33, h: h * 0.44 },
+          { x: w * 0.67, y: h * 0.56, w: w * 0.33, h: h * 0.44 }
+        ];
+      }
+      if (n === 6) {
+        return [
+          { x: 0, y: 0, w: w * 0.5, h: h * 0.54 },
+          { x: w * 0.5, y: 0, w: w * 0.5, h: h * 0.54 },
+          { x: 0, y: h * 0.54, w: w * 0.25, h: h * 0.46 },
+          { x: w * 0.25, y: h * 0.54, w: w * 0.25, h: h * 0.46 },
+          { x: w * 0.5, y: h * 0.54, w: w * 0.25, h: h * 0.46 },
+          { x: w * 0.75, y: h * 0.54, w: w * 0.25, h: h * 0.46 }
+        ];
+      }
+      if (n === 7) {
+        return [
+          { x: 0, y: 0, w: w * 0.24, h: h * 0.5 },
+          { x: w * 0.24, y: 0, w: w * 0.46, h: h * 0.55 },
+          { x: w * 0.7, y: 0, w: w * 0.3, h: h * 0.55 },
+          { x: 0, y: h * 0.5, w: w * 0.24, h: h * 0.5 },
+          { x: w * 0.24, y: h * 0.55, w: w * 0.23, h: h * 0.45 },
+          { x: w * 0.47, y: h * 0.55, w: w * 0.23, h: h * 0.45 },
+          { x: w * 0.7, y: h * 0.55, w: w * 0.3, h: h * 0.45 }
+        ];
+      }
+      if (n === 8) {
+        return [
+          { x: 0, y: 0, w: w * 0.22, h: h * 0.5 },
+          { x: w * 0.22, y: 0, w: w * 0.38, h: h * 0.55 },
+          { x: w * 0.6, y: 0, w: w * 0.2, h: h * 0.55 },
+          { x: w * 0.8, y: 0, w: w * 0.2, h: h * 0.55 },
+          { x: 0, y: h * 0.5, w: w * 0.22, h: h * 0.5 },
+          { x: w * 0.22, y: h * 0.55, w: w * 0.38, h: h * 0.45 },
+          { x: w * 0.6, y: h * 0.55, w: w * 0.2, h: h * 0.45 },
+          { x: w * 0.8, y: h * 0.55, w: w * 0.2, h: h * 0.45 }
+        ];
+      }
+      if (n === 9) {
+        return [
+          { x: 0, y: 0, w: w * 0.22, h: h * 0.5 },
+          { x: w * 0.22, y: 0, w: w * 0.36, h: h * 0.55 },
+          { x: w * 0.58, y: 0, w: w * 0.21, h: h * 0.55 },
+          { x: w * 0.79, y: 0, w: w * 0.21, h: h * 0.5 },
+          { x: 0, y: h * 0.5, w: w * 0.22, h: h * 0.5 },
+          { x: w * 0.22, y: h * 0.55, w: w * 0.18, h: h * 0.45 },
+          { x: w * 0.4, y: h * 0.55, w: w * 0.39, h: h * 0.45 },
+          { x: w * 0.79, y: h * 0.5, w: w * 0.21, h: h * 0.25 },
+          { x: w * 0.79, y: h * 0.75, w: w * 0.21, h: h * 0.25 }
+        ];
+      }
+      // 10 kotak bervariasi seperti pola gambar rujukan
+      return [
+        { x: 0, y: 0, w: w * 0.21, h: h * 0.5 },
+        { x: w * 0.21, y: 0, w: w * 0.36, h: h * 0.55 },
+        { x: w * 0.57, y: 0, w: w * 0.21, h: h * 0.55 },
+        { x: w * 0.78, y: 0, w: w * 0.22, h: h * 0.33 },
+        { x: 0, y: h * 0.5, w: w * 0.21, h: h * 0.5 },
+        { x: w * 0.21, y: h * 0.55, w: w * 0.21, h: h * 0.45 },
+        { x: w * 0.42, y: h * 0.55, w: w * 0.36, h: h * 0.45 },
+        { x: w * 0.78, y: h * 0.33, w: w * 0.22, h: h * 0.34 },
+        { x: w * 0.78, y: h * 0.67, w: w * 0.22, h: h * 0.33 },
+        { x: w * 0.57, y: h * 0.55, w: w * 0.21, h: h * 0.45 }
+      ];
+    }
+
+    function drawCoverImage(ctx, img, rect, gap) {
+      const x = Math.round(rect.x + gap);
+      const y = Math.round(rect.y + gap);
+      const cw = Math.max(10, Math.round(rect.w - gap * 2));
+      const ch = Math.max(10, Math.round(rect.h - gap * 2));
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x, y, cw, ch);
+      ctx.clip();
+
+      const iw = img.naturalWidth || img.width;
+      const ih = img.naturalHeight || img.height;
+      const scale = Math.max(cw / iw, ch / ih);
+      const dw = iw * scale;
+      const dh = ih * scale;
+      const dx = x + (cw - dw) / 2;
+      const dy = y + (ch - dh) / 2;
+
+      ctx.drawImage(img, dx, dy, dw, dh);
+      ctx.restore();
+    }
+
+    async function buildCollage(autoTriggered = false) {
+      const photos = getSinglePhotos().slice(0, 10);
+      if (photos.length < 2 || isBusy) return;
+
+      isBusy = true;
+      updateQuotaUI();
+      $("statusMsg").textContent = `Menyusun kolase ${photos.length} foto...`;
+
+      try {
+        const imgs = await Promise.all(photos.map(p => loadImageFromSrc(p.dataUrl)));
+        const w = 2400;
+        const h = 1800;
+        const withFrame = $("autoFrameToggle").checked;
+        const bannerH = withFrame ? getBannerHeightForPhoto(w, h) : 0;
+        const gap = 8;
+
+        const canvas = $("canvas");
+        canvas.width = w;
+        canvas.height = h + bannerH;
+        const ctx = canvas.getContext("2d");
+
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, w, h + bannerH);
+
+        const rects = getCollageRects(imgs.length, w, h);
+        imgs.forEach((img, idx) => {
+          drawCoverImage(ctx, img, rects[idx], gap);
+        });
+
+        if (withFrame) {
+          drawAutoFrameBanner(ctx, w, h, bannerH);
+        }
+
+        const blob = await canvasToBlobAsync(canvas, 0.94);
+        const dataUrl = blob ? await blobToDataUrlAsync(blob) : canvas.toDataURL("image/jpeg", 0.94);
+        const bytes = blob ? blob.size : 0;
+
+        localRoll = localRoll.filter(item => !item.isCollage);
+        localRoll.unshift({
+          id: "collage_" + Date.now(),
+          dataUrl,
+          bytes,
+          preset: `Kolase (${imgs.length} Foto)`,
+          status: "pending",
+          isCollage: true
+        });
+
+        $("statusMsg").textContent = autoTriggered
+          ? `10 foto tercapai! Kolase ${imgs.length} foto otomatis muncul di roll HP.`
+          : `Kolase ${imgs.length} foto siap di roll HP (${formatSizeKbMb(bytes)}).`;
+      } catch (err) {
+        $("statusMsg").textContent = "Gagal menyusun kolase foto.";
+      } finally {
+        isBusy = false;
+        renderRoll();
+      }
+    }
+
     async function handleNativeFileChange(e) {
       const file = e.target.files && e.target.files[0];
       e.target.value = "";
@@ -630,6 +850,8 @@
       isBusy = true;
       updateQuotaUI();
       $("statusMsg").textContent = "Menyiapkan hasil foto dari kamera HP...";
+
+      let reachedTen = false;
 
       try {
         const withFrame = $("autoFrameToggle").checked;
@@ -645,6 +867,8 @@
             preset,
             status: "pending"
           });
+          const photoCount = getSinglePhotos().length;
+          reachedTen = photoCount === 10;
           $("statusMsg").textContent = `Masuk ke roll HP (${formatSizeKbMb(bytes)}). Sisa kuota: ${getAvailableSlots()}`;
         }
       } catch (err) {
@@ -652,6 +876,10 @@
       } finally {
         isBusy = false;
         renderRoll();
+      }
+
+      if (reachedTen) {
+        await buildCollage(true);
       }
     }
 
@@ -823,6 +1051,7 @@
       });
 
       $("nativeCameraInput").addEventListener("change", handleNativeFileChange);
+      $("collageBtn").addEventListener("click", () => buildCollage(false));
       $("uploadAllBtn").addEventListener("click", handleUploadAll);
       $("refreshGalleryBtn").addEventListener("click", syncState);
       $("closeModalBtn").addEventListener("click", closeSaveModal);
