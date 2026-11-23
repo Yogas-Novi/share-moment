@@ -114,55 +114,17 @@
       font-size: 0.9rem;
     }
     .name-input::placeholder { color: var(--muted); }
-    .viewfinder {
-      position: relative;
-      width: 100%;
-      aspect-ratio: 4 / 5;
-      background: #1c1611;
-      border-radius: 18px;
-      overflow: hidden;
-      margin-top: 12px;
-      border: 1px solid var(--border);
-    }
-    video {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-      transition: filter 0.2s ease, transform 0.2s ease;
-    }
-    .vf-overlay-top {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      right: 10px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      pointer-events: none;
-    }
-    .vf-tag {
-      background: rgba(34, 25, 17, 0.68);
-      backdrop-filter: blur(6px);
-      color: #fff8ec;
-      font-size: 0.74rem;
-      padding: 5px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(255, 248, 236, 0.16);
-    }
-    .vf-flash-tint {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      opacity: 0;
-      background: radial-gradient(circle at 50% 45%, rgba(255, 248, 225, 0.16), rgba(16, 12, 8, 0.42));
-      transition: opacity 0.2s ease;
+    .preset-label {
+      margin: 12px 2px 6px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--muted);
     }
     .preset-strip {
       display: flex;
       gap: 8px;
       overflow-x: auto;
-      padding: 12px 2px 4px;
+      padding: 2px 2px 6px;
       scrollbar-width: none;
     }
     .preset-strip::-webkit-scrollbar { display: none; }
@@ -184,54 +146,37 @@
       color: var(--accent-deep);
       border-color: var(--accent);
     }
-    .controls-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-      margin-top: 12px;
-      padding: 2px 4px;
-    }
-    .ctrl-btn {
+    .cam-launch-box {
+      margin-top: 10px;
       background: var(--surface);
-      color: var(--ink);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 10px 13px;
-      font: inherit;
-      font-size: 0.82rem;
-      font-weight: 600;
-      cursor: pointer;
-      min-width: 96px;
+      border: 1px dashed var(--border);
+      border-radius: 18px;
+      padding: 18px 14px;
       text-align: center;
     }
-    .ctrl-btn:disabled, .shutter-outer:disabled, .btn-primary:disabled {
-      opacity: 0.42;
-      cursor: not-allowed;
+    .cam-launch-box p {
+      margin: 0 0 12px;
+      font-size: 0.83rem;
+      color: var(--muted);
+      line-height: 1.45;
     }
-    .shutter-outer {
-      width: 74px;
-      height: 74px;
-      border-radius: 999px;
-      padding: 5px;
-      background: transparent;
-      border: 3px solid var(--accent);
-      cursor: pointer;
-      display: grid;
-      place-items: center;
-      transition: transform 0.1s ease;
-    }
-    .shutter-outer:active:not(:disabled) { transform: scale(0.94); }
-    .shutter-inner {
+    .cam-big-btn {
       width: 100%;
-      height: 100%;
-      border-radius: 999px;
       background: var(--accent);
-      display: grid;
-      place-items: center;
       color: var(--accent-ink);
+      border: none;
+      border-radius: 15px;
+      padding: 13px 16px;
+      font: inherit;
+      font-size: 0.92rem;
       font-weight: 800;
-      font-size: 0.78rem;
+      cursor: pointer;
+      box-shadow: 0 6px 16px rgba(154, 103, 40, 0.22);
+    }
+    .cam-big-btn:disabled, .btn-primary:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      box-shadow: none;
     }
     .status-line {
       margin: 10px 2px 0;
@@ -380,6 +325,41 @@
       padding: 6px 8px;
       font-size: 0.74rem;
       font-weight: 700;
+      cursor: pointer;
+    }
+    .save-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(24, 17, 11, 0.72);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      z-index: 99;
+    }
+    .save-modal.open { display: flex; }
+    .save-sheet {
+      width: 100%;
+      max-width: 420px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 14px;
+      text-align: center;
+    }
+    .save-sheet img {
+      width: 100%;
+      max-height: 62vh;
+      object-fit: contain;
+      border-radius: 12px;
+      background: #fff;
+    }
+    .save-tip {
+      margin: 10px 0 12px;
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.4;
     }
   </style>
 </head>
@@ -388,7 +368,7 @@
     <header class="hero">
       <span class="kicker">Share Moment</span>
       <h1 id="eventTitle">Share Kebahagiaan Bersama Kami</h1>
-      <p>Jepret momen seru kamu, simpan di HP atau unggah ke album bersama (maks. 2 MB/foto)</p>
+      <p>Jepret lewat kamera bawaan HP kamu, simpan ke galeri atau unggah ke album (maks. 2 MB/foto)</p>
     </header>
 
     <div class="top-bar">
@@ -402,15 +382,7 @@
     <section class="card">
       <input id="guestName" class="name-input" type="text" maxlength="50" placeholder="Nama kamu (opsional)">
 
-      <div class="viewfinder">
-        <video id="video" autoplay playsinline muted></video>
-        <div id="flashTint" class="vf-flash-tint"></div>
-        <div class="vf-overlay-top">
-          <span id="livePresetTag" class="vf-tag">Tanpa Filter</span>
-          <span id="rollCountTag" class="vf-tag">Roll HP: 0</span>
-        </div>
-      </div>
-
+      <div class="preset-label">Pilih nuansa foto sebelum jepret:</div>
       <div id="presetStrip" class="preset-strip" role="tablist" aria-label="Pilih Filter">
         <button type="button" class="preset-chip active" data-preset="Tanpa Filter">Tanpa Filter</button>
         <button type="button" class="preset-chip" data-preset="Warm Film">Warm Film</button>
@@ -419,12 +391,10 @@
         <button type="button" class="preset-chip" data-preset="Night Flash">Night Flash</button>
       </div>
 
-      <div class="controls-row">
-        <button id="startCamBtn" type="button" class="ctrl-btn">Buka Kamera</button>
-        <button id="snapBtn" type="button" class="shutter-outer" disabled aria-label="Jepret Foto">
-          <span class="shutter-inner">JEPRET</span>
-        </button>
-        <button id="flipBtn" type="button" class="ctrl-btn">Balik Kamera</button>
+      <div class="cam-launch-box">
+        <p>Menggunakan aplikasi <strong>kamera bawaan HP</strong> agar kualitas jepretan tetap mengikuti pengaturan HP masing-masing.</p>
+        <button id="openNativeCamBtn" type="button" class="cam-big-btn" disabled>Ambil Foto dengan Kamera HP</button>
+        <input id="nativeCameraInput" type="file" accept="image/*" capture="environment" style="display:none;">
       </div>
 
       <p id="statusMsg" class="status-line"></p>
@@ -435,12 +405,12 @@
       <div class="sec-head">
         <div>
           <h2>Roll Pratinjau di HP</h2>
-          <div class="sec-sub">Pilih foto yang mau diunggah atau unduh ke galeri HP</div>
+          <div id="rollCountSub" class="sec-sub">Roll HP: 0 · Pilih foto yang mau diunggah atau diunduh</div>
         </div>
         <button id="uploadAllBtn" type="button" class="btn-primary" disabled>Upload Semua (0)</button>
       </div>
       <div id="rollContainer">
-        <div class="empty-roll">Belum ada foto di roll HP. Tekan <strong>Buka Kamera</strong> lalu mulai jepret!</div>
+        <div class="empty-roll">Belum ada foto di roll HP. Tekan <strong>Ambil Foto dengan Kamera HP</strong> untuk mulai menjepret.</div>
       </div>
     </section>
 
@@ -453,23 +423,30 @@
       <div id="unlockedBox" style="display:none;">
         <div class="sec-head">
           <h2>Album Foto Bersama</h2>
-          <button id="refreshGalleryBtn" type="button" class="ctrl-btn" style="min-width:auto;padding:7px 12px;">Muat Ulang</button>
+          <button id="refreshGalleryBtn" type="button" class="mini-btn mini-dl" style="flex:0 0 auto;padding:7px 12px;">Muat Ulang</button>
         </div>
         <div id="galleryGrid" class="gallery"></div>
       </div>
     </section>
   </div>
 
+  <div id="saveModal" class="save-modal" role="dialog" aria-modal="true" aria-label="Simpan Foto ke Galeri">
+    <div class="save-sheet">
+      <img id="modalImg" src="" alt="Pratinjau simpan foto">
+      <p class="save-tip">Untuk pengguna iPhone/Safari: <strong>tekan lama pada gambar</strong> di atas lalu pilih <strong>Simpan ke Foto</strong> (<em>Add to Photos</em>).</p>
+      <button id="closeModalBtn" type="button" class="btn-primary" style="width:100%;">Tutup</button>
+    </div>
+  </div>
+
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbxLP7SVW9eDLK0-RL9L2eFwSFNCWqoWXlRx87mW3RZl5fh3NrTMADyluscpxw1xXyvP/exec";
     const SESSION_KEY = "share_moment_session_v1";
     const NAME_KEY = "share_moment_guest_name_v1";
-    const MAX_BYTES = 2 * 1024 * 1024; // Maksimal 2 MB per foto
-    const FRAME_LEFT_TEXT = "Walimatul 'Urs · Yogaswara & Novi Erlinda";
+    const MAX_BYTES = 2 * 1024 * 1024;
+    const FRAME_KICKER = "WALIMATUL 'URS";
+    const FRAME_LEFT_TEXT = "Yogaswara & Novi Erlinda";
     const FRAME_RIGHT_TEXT = "12 Désémber 2026";
 
-    let stream = null;
-    let facingMode = "environment";
     let selectedPreset = "Tanpa Filter";
     let revealAtIso = "";
     let cameraOpen = true;
@@ -478,6 +455,7 @@
     let localRoll = [];
 
     const $ = id => document.getElementById(id);
+    const isIosDevice = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
     function getSessionId() {
       let sid = localStorage.getItem(SESSION_KEY);
@@ -488,20 +466,12 @@
       return sid;
     }
 
-    function getCssFilter(preset) {
+    function getCanvasFilter(preset) {
       if (preset === "Warm Film") return "contrast(1.06) saturate(1.22) sepia(0.18)";
       if (preset === "Retro 2000s") return "contrast(1.15) saturate(1.35) hue-rotate(-8deg)";
       if (preset === "B&W Classic") return "grayscale(1) contrast(1.22)";
       if (preset === "Night Flash") return "brightness(1.18) contrast(1.2) saturate(1.1)";
       return "none";
-    }
-
-    function updateLiveViewfinder() {
-      const video = $("video");
-      video.style.filter = getCssFilter(selectedPreset);
-      video.style.transform = facingMode === "user" ? "scaleX(-1)" : "none";
-      $("flashTint").style.opacity = selectedPreset === "Night Flash" ? "1" : "0";
-      $("livePresetTag").textContent = selectedPreset;
     }
 
     function getPendingCount() {
@@ -510,11 +480,6 @@
 
     function getAvailableSlots() {
       return Math.max(0, serverRemaining - getPendingCount());
-    }
-
-    function estimateDataUrlBytes(dataUrl) {
-      const base64 = dataUrl.split(",")[1] || "";
-      return Math.floor((base64.length * 3) / 4);
     }
 
     function formatSizeKbMb(bytes) {
@@ -527,16 +492,54 @@
       const pending = getPendingCount();
       const slots = getAvailableSlots();
       $("shotsBadge").textContent = `Sisa kuota: ${slots}`;
-      $("rollCountTag").textContent = `Roll HP: ${localRoll.length}`;
+      $("rollCountSub").textContent = `Roll HP: ${localRoll.length} · Pilih foto yang mau diunggah atau diunduh`;
       $("uploadAllBtn").textContent = `Upload Semua (${pending})`;
       $("uploadAllBtn").disabled = pending === 0 || isBusy || !cameraOpen;
-      $("snapBtn").disabled = !stream || slots <= 0 || isBusy || !cameraOpen;
+      $("openNativeCamBtn").disabled = slots <= 0 || isBusy || !cameraOpen;
+    }
+
+    function openSaveModal(src) {
+      $("modalImg").src = src;
+      $("saveModal").classList.add("open");
+    }
+
+    function closeSaveModal() {
+      $("saveModal").classList.remove("open");
+      $("modalImg").src = "";
+    }
+
+    async function triggerDownload(urlOrDataUrl, fileName) {
+      try {
+        const res = await fetch(urlOrDataUrl);
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+
+        if (isIosDevice()) {
+          openSaveModal(blobUrl);
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+          return;
+        }
+
+        const link = document.createElement("a");
+        link.href = blobUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+      } catch (err) {
+        if (isIosDevice()) {
+          openSaveModal(urlOrDataUrl);
+        } else {
+          window.open(urlOrDataUrl, "_blank", "noopener");
+        }
+      }
     }
 
     function renderRoll() {
       const box = $("rollContainer");
       if (!localRoll.length) {
-        box.innerHTML = `<div class="empty-roll">Belum ada foto di roll HP. Tekan <strong>Buka Kamera</strong> lalu mulai jepret!</div>`;
+        box.innerHTML = `<div class="empty-roll">Belum ada foto di roll HP. Tekan <strong>Ambil Foto dengan Kamera HP</strong> untuk mulai menjepret.</div>`;
         updateQuotaUI();
         return;
       }
@@ -548,8 +551,7 @@
         const card = document.createElement("div");
         card.className = "roll-item";
 
-        const dlAttr = `href="${item.dataUrl}" download="share-moment-${item.id}.jpg"`;
-        let actionsHtml = `<a class="mini-btn mini-dl" ${dlAttr}>Download</a>`;
+        let actionsHtml = `<button type="button" class="mini-btn mini-dl" data-action="download" data-id="${item.id}">Download</button>`;
 
         if (item.status === "uploaded") {
           actionsHtml += `<div class="badge-done">Tersimpan di Album</div>`;
@@ -581,51 +583,97 @@
     function drawAutoFrameBanner(ctx, photoW, photoH, bannerH) {
       ctx.save();
       ctx.filter = "none";
-      ctx.fillStyle = "#ffffff";
+
+      ctx.fillStyle = "#fcfaf5";
       ctx.fillRect(0, photoH, photoW, bannerH);
 
-      const midY = photoH + bannerH / 2;
-      const padX = Math.max(18, Math.round(photoW * 0.032));
-      const dividerX = Math.round(photoW * 0.66);
-      const fontSize = Math.max(13, Math.min(26, Math.round(bannerH * 0.24)));
+      ctx.strokeStyle = "#e6dccb";
+      ctx.lineWidth = Math.max(1.5, Math.round(photoW * 0.0016));
+      ctx.beginPath();
+      ctx.moveTo(0, photoH);
+      ctx.lineTo(photoW, photoH);
+      ctx.stroke();
 
-      ctx.strokeStyle = "#d9d2c7";
-      ctx.lineWidth = Math.max(1.5, Math.round(photoW * 0.002));
+      const padX = Math.max(24, Math.round(photoW * 0.04));
+      const dividerX = Math.round(photoW * 0.65);
+      const kickerFont = Math.max(11, Math.min(20, Math.round(bannerH * 0.13)));
+      const nameFont = Math.max(16, Math.min(34, Math.round(bannerH * 0.24)));
+      const dateFont = Math.max(14, Math.min(28, Math.round(bannerH * 0.19)));
+
+      ctx.strokeStyle = "#d8c8b0";
+      ctx.lineWidth = Math.max(1.5, Math.round(photoW * 0.0018));
       ctx.beginPath();
       ctx.moveTo(dividerX, photoH + Math.round(bannerH * 0.22));
       ctx.lineTo(dividerX, photoH + Math.round(bannerH * 0.78));
       ctx.stroke();
 
-      ctx.fillStyle = "#1f1a16";
-      ctx.textBaseline = "middle";
+      const centerY = photoH + bannerH / 2;
+
       ctx.textAlign = "left";
-      ctx.font = `700 ${fontSize}px system-ui, -apple-system, sans-serif`;
-      const maxLeftW = Math.max(80, dividerX - padX - 14);
-      ctx.fillText(FRAME_LEFT_TEXT, padX, midY, maxLeftW);
+      ctx.textBaseline = "alphabetic";
+      ctx.fillStyle = "#8a5a22";
+      ctx.font = `700 ${kickerFont}px system-ui, -apple-system, sans-serif`;
+      const maxLeftW = Math.max(100, dividerX - padX - 20);
+      ctx.fillText(FRAME_KICKER, padX, centerY - Math.round(nameFont * 0.22), maxLeftW);
+
+      ctx.fillStyle = "#241911";
+      ctx.font = `600 ${nameFont}px Georgia, "Times New Roman", serif`;
+      ctx.fillText(FRAME_LEFT_TEXT, padX, centerY + Math.round(nameFont * 0.76), maxLeftW);
 
       ctx.textAlign = "right";
-      ctx.font = `600 ${Math.max(12, Math.round(fontSize * 0.92))}px system-ui, -apple-system, sans-serif`;
-      const maxRightW = Math.max(60, photoW - dividerX - padX - 14);
-      ctx.fillText(FRAME_RIGHT_TEXT, photoW - padX, midY, maxRightW);
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "#3a2b1f";
+      ctx.font = `500 ${dateFont}px Georgia, "Times New Roman", serif`;
+      const maxRightW = Math.max(80, photoW - dividerX - padX - 20);
+      ctx.fillText(FRAME_RIGHT_TEXT, photoW - padX, centerY, maxRightW);
 
       ctx.restore();
     }
 
-    function encodeUnderMaxBytes(preset, withFrame) {
-      const video = $("video");
-      let maxSide = 1920;
-      const longEdge = Math.max(video.videoWidth, video.videoHeight);
+    function loadImageFromFile(file) {
+      return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+          URL.revokeObjectURL(url);
+          resolve(img);
+        };
+        img.onerror = err => {
+          URL.revokeObjectURL(url);
+          reject(err);
+        };
+        img.src = url;
+      });
+    }
+
+    function canvasToBlobAsync(canvas, quality) {
+      return new Promise(resolve => canvas.toBlob(blob => resolve(blob), "image/jpeg", quality));
+    }
+
+    function blobToDataUrlAsync(blob) {
+      return new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    async function processNativePhoto(file, preset, withFrame) {
+      const img = await loadImageFromFile(file);
+      const srcW = img.naturalWidth || img.width;
+      const srcH = img.naturalHeight || img.height;
+      const maxSide = 2400;
+      const longEdge = Math.max(srcW, srcH);
       const initialScale = Math.min(1, maxSide / longEdge);
 
-      let quality = 0.90;
-      let dataUrl = "";
-      let bytes = 0;
+      let quality = 0.92;
+      let blob = null;
 
-      for (let attempt = 0; attempt < 9; attempt++) {
-        const scale = initialScale * (attempt >= 5 ? Math.pow(0.85, attempt - 4) : 1);
-        const w = Math.max(480, Math.round(video.videoWidth * scale));
-        const h = Math.max(480, Math.round(video.videoHeight * scale));
-        const bannerH = withFrame ? Math.max(58, Math.round(h * 0.115)) : 0;
+      for (let attempt = 0; attempt < 10; attempt++) {
+        const scale = initialScale * (attempt >= 5 ? Math.pow(0.84, attempt - 4) : 1);
+        const w = Math.max(600, Math.round(srcW * scale));
+        const h = Math.max(600, Math.round(srcH * scale));
+        const bannerH = withFrame ? Math.max(76, Math.round(h * 0.12)) : 0;
 
         const canvas = $("canvas");
         canvas.width = w;
@@ -633,12 +681,8 @@
         const ctx = canvas.getContext("2d");
 
         ctx.save();
-        ctx.filter = getCssFilter(preset);
-        if (facingMode === "user") {
-          ctx.translate(w, 0);
-          ctx.scale(-1, 1);
-        }
-        ctx.drawImage(video, 0, 0, w, h);
+        ctx.filter = getCanvasFilter(preset);
+        ctx.drawImage(img, 0, 0, w, h);
         ctx.restore();
 
         if (preset === "Night Flash") {
@@ -653,51 +697,47 @@
           drawAutoFrameBanner(ctx, w, h, bannerH);
         }
 
-        dataUrl = canvas.toDataURL("image/jpeg", quality);
-        bytes = estimateDataUrlBytes(dataUrl);
-
-        if (bytes <= MAX_BYTES) break;
-        quality = Math.max(0.45, quality - 0.10);
+        blob = await canvasToBlobAsync(canvas, quality);
+        if (!blob) break;
+        if (blob.size <= MAX_BYTES) break;
+        quality = Math.max(0.50, quality - 0.08);
       }
 
-      return { dataUrl, bytes };
+      const dataUrl = blob ? await blobToDataUrlAsync(blob) : "";
+      return { dataUrl, bytes: blob ? blob.size : 0 };
     }
 
-    async function startCamera() {
+    async function handleNativeFileChange(e) {
+      const file = e.target.files && e.target.files[0];
+      e.target.value = "";
+      if (!file || getAvailableSlots() <= 0 || isBusy) return;
+
+      isBusy = true;
+      updateQuotaUI();
+      $("statusMsg").textContent = "Memproses hasil foto dari kamera HP...";
+
       try {
-        if (stream) {
-          stream.getTracks().forEach(t => t.stop());
+        const withFrame = $("autoFrameToggle").checked;
+        const { dataUrl, bytes } = await processNativePhoto(file, selectedPreset, withFrame);
+
+        if (!dataUrl) {
+          $("statusMsg").textContent = "Gagal membaca hasil foto dari kamera HP.";
+        } else {
+          localRoll.unshift({
+            id: "shot_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+            dataUrl,
+            bytes,
+            preset: selectedPreset,
+            status: "pending"
+          });
+          $("statusMsg").textContent = `Masuk ke roll HP (${formatSizeKbMb(bytes)}). Sisa kuota: ${getAvailableSlots()}`;
         }
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode, width: { ideal: 1920 }, height: { ideal: 2400 } },
-          audio: false
-        });
-        $("video").srcObject = stream;
-        updateLiveViewfinder();
-        updateQuotaUI();
-        $("statusMsg").textContent = "Kamera aktif. Mangga di-jepret!";
       } catch (err) {
-        $("statusMsg").textContent = "Izin kamera ditolak atau tidak tersedia di perangkat ini.";
+        $("statusMsg").textContent = "Terjadi kendala saat memproses foto.";
+      } finally {
+        isBusy = false;
+        renderRoll();
       }
-    }
-
-    function captureToRoll() {
-      const video = $("video");
-      if (!stream || !video.videoWidth || getAvailableSlots() <= 0 || isBusy) return;
-
-      const withFrame = $("autoFrameToggle").checked;
-      const { dataUrl, bytes } = encodeUnderMaxBytes(selectedPreset, withFrame);
-
-      localRoll.unshift({
-        id: "shot_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
-        dataUrl,
-        bytes,
-        preset: selectedPreset,
-        status: "pending"
-      });
-
-      renderRoll();
-      $("statusMsg").textContent = `Masuk ke roll HP (${formatSizeKbMb(bytes)}). Sisa kuota: ${getAvailableSlots()}`;
     }
 
     async function uploadSingleItem(item) {
@@ -818,7 +858,7 @@
             <span>${p.preset}</span>
           </div>
           <div class="photo-foot">
-            <a class="dl-link" href="${p.image_url}" download="walimatul-urs-foto-${idx + 1}.jpg" target="_blank" rel="noopener">Download</a>
+            <button type="button" class="dl-link" data-gallery-dl="${p.image_url}" data-gallery-name="walimatul-urs-foto-${idx + 1}.jpg">Download</button>
           </div>
         `;
         grid.appendChild(card);
@@ -868,18 +908,20 @@
         document.querySelectorAll(".preset-chip").forEach(c => c.classList.remove("active"));
         chip.classList.add("active");
         selectedPreset = chip.dataset.preset;
-        updateLiveViewfinder();
       });
 
-      $("flipBtn").addEventListener("click", () => {
-        facingMode = facingMode === "environment" ? "user" : "environment";
-        startCamera();
+      $("openNativeCamBtn").addEventListener("click", () => {
+        if (getAvailableSlots() <= 0 || isBusy || !cameraOpen) return;
+        $("nativeCameraInput").click();
       });
 
-      $("startCamBtn").addEventListener("click", startCamera);
-      $("snapBtn").addEventListener("click", captureToRoll);
+      $("nativeCameraInput").addEventListener("change", handleNativeFileChange);
       $("uploadAllBtn").addEventListener("click", handleUploadAll);
       $("refreshGalleryBtn").addEventListener("click", syncState);
+      $("closeModalBtn").addEventListener("click", closeSaveModal);
+      $("saveModal").addEventListener("click", e => {
+        if (e.target === $("saveModal")) closeSaveModal();
+      });
 
       $("rollContainer").addEventListener("click", e => {
         const btn = e.target.closest("button[data-action]");
@@ -887,9 +929,18 @@
         const { action, id } = btn.dataset;
         if (action === "upload") handleUploadOne(id);
         if (action === "retake") handleRetake(id);
+        if (action === "download") {
+          const item = localRoll.find(x => x.id === id);
+          if (item) triggerDownload(item.dataUrl, `share-moment-${item.id}.jpg`);
+        }
       });
 
-      updateLiveViewfinder();
+      $("galleryGrid").addEventListener("click", e => {
+        const btn = e.target.closest("button[data-gallery-dl]");
+        if (!btn) return;
+        triggerDownload(btn.dataset.galleryDl, btn.dataset.galleryName);
+      });
+
       syncState();
       setInterval(updateCountdown, 1000);
     });
